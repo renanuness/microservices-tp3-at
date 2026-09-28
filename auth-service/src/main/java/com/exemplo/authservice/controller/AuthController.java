@@ -2,6 +2,7 @@ package com.exemplo.authservice.controller;
 
 import com.exemplo.authservice.dto.LoginDto;
 import com.exemplo.authservice.dto.LoginResponseDto;
+import com.exemplo.authservice.dto.RefreshTokenDto;
 import com.exemplo.authservice.dto.RegisterDto;
 import com.exemplo.authservice.service.AuthService;
 import com.exemplo.authservice.service.JwtToken;
@@ -13,8 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
-@RequestMapping("/api/auth")
 @RestController
 public class AuthController {
     private final AuthService service;
@@ -36,6 +38,23 @@ public class AuthController {
         var user = service.login(dto);
 
         var token = tokenService.generateToken(user);
-        return ResponseEntity.ok(new LoginResponseDto(token));
+        var refreshToken = tokenService.generateRefreshToken(user);
+
+        return ResponseEntity.ok(new LoginResponseDto(token, refreshToken));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenDto request) {
+        String refreshToken = request.refreshToken();
+        if (tokenService.validateToken(refreshToken)) {
+            String email = tokenService.getEmailFromToken(refreshToken);
+            var user = service.getUserByEmail(email);
+            String newAccessToken = tokenService.generateToken(user);
+
+            Map<String, String> tokens = new HashMap<>();
+            tokens.put("accessToken", newAccessToken);
+            return ResponseEntity.ok(tokens);
+        }
+        return ResponseEntity.status(403).body("Invalid refresh token");
     }
 }

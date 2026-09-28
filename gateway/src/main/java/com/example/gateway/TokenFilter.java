@@ -20,8 +20,8 @@ import java.util.List;
 public class TokenFilter implements GlobalFilter, Ordered {
 
     private static final List<String> LIVRES = List.of(
-            "auth-service/login",
-            "auth-service/register"
+            "/auth-service/login",
+            "/auth-service/register"
     );
 
     private final SecretKey secretKey;
@@ -38,7 +38,7 @@ public class TokenFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
-
+        System.out.println("Path: " + path);
         if(LIVRES.contains(path)){
             return chain.filter(exchange);
         }
@@ -46,15 +46,20 @@ public class TokenFilter implements GlobalFilter, Ordered {
         String header = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if(header == null || !header.startsWith("Bearer ")){
+            System.out.println("Token not present");
             return deny(exchange);
         }
 
         try{
+            var token = header.substring(7);
+            System.out.println("Token: " + token);
             Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
-                    .parseSignedClaims(header.substring(7));
+                    .parseSignedClaims(token);
         }catch (Exception e){
+            System.out.println("Invalid token");
+            System.out.println(e.getLocalizedMessage());
             return deny(exchange);
         }
 

@@ -37,4 +37,10 @@ public class AuthService {
 
         return user;
     }
+
+    public User getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário ou senha inválidos"));
+
+        return user;
+    }
 }
